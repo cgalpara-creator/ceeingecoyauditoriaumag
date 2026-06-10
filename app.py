@@ -430,7 +430,7 @@ def _generar_comprobante_pdf(t: dict) -> BytesIO:
     # Firma.
     c.line(20 * mm, 22 * mm, 80 * mm, 22 * mm)
     c.setFont("Helvetica", 9)
-    c.drawString(20 * mm, 18 * mm, "Firma responsable de tesorería")
+    c.drawString(20 * mm, 18 * mm, "Firma de Secretario de Finanzas")
     c.drawRightString(ancho - 18 * mm, 12 * mm,
                       f"Emitido: {date.today().isoformat()}")
 
