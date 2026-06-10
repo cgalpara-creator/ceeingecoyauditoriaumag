@@ -60,11 +60,13 @@
             <i class="bi bi-bar-chart-line me-2"></i>Reportes
           </a>
         </li>
+        {% if es_admin %}
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'usuarios' %}active{% endif %}" href="{{ url_for('usuarios') }}">
             <i class="bi bi-people me-2"></i>Usuarios
           </a>
         </li>
+        {% endif %}
         <li class="nav-item mt-2">
           <a class="nav-link" href="{{ url_for('exportar') }}">
             <i class="bi bi-file-earmark-excel me-2"></i>Exportar Excel

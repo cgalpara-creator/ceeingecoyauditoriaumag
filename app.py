@@ -65,9 +65,23 @@ app.jinja_env.globals.update(clp=db.format_clp, empresa=EMPRESA)
 @app.context_processor
 def inyectar_comunes():
     """Variables disponibles en todas las plantillas (ej. el mes actual)."""
+    usuario = session.get("usuario")
     return {"mes_actual": date.today().strftime("%Y-%m"),
             "hoy": date.today().isoformat(),
-            "usuario_actual": session.get("usuario")}
+            "usuario_actual": usuario,
+            "es_admin": bool(usuario) and db.es_usuario_admin(usuario)}
+
+
+def admin_required(f):
+    """Decorador: restringe una ruta solo a usuarios administradores."""
+    @wraps(f)
+    def envoltura(*args, **kwargs):
+        usuario = session.get("usuario")
+        if not usuario or not db.es_usuario_admin(usuario):
+            flash("Solo un administrador puede gestionar usuarios.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return envoltura
 
 
 # ---------------------------------------------------------------------------
@@ -105,24 +119,45 @@ def logout():
 
 
 @app.route("/usuarios")
+@admin_required
 def usuarios():
     return render_template("usuarios.html", usuarios=db.listar_usuarios())
 
 
 @app.route("/usuarios/nuevo", methods=["POST"])
+@admin_required
 def nuevo_usuario():
     usuario = request.form.get("usuario", "").strip()
     clave = request.form.get("clave", "")
     if not usuario or len(clave) < 4:
         flash("Usuario obligatorio y contraseña de al menos 4 caracteres.", "danger")
-    elif db.crear_usuario(usuario, clave):
+    elif db.crear_usuario(usuario, clave):  # colegas: rol normal (no admin)
         flash(f"Usuario «{usuario}» creado.", "success")
     else:
         flash(f"El usuario «{usuario}» ya existe.", "danger")
     return redirect(url_for("usuarios"))
 
 
+@app.route("/usuarios/<int:uid>/renombrar", methods=["POST"])
+@admin_required
+def renombrar_usuario(uid: int):
+    nuevo = request.form.get("nuevo_nombre", "").strip()
+    if not nuevo:
+        flash("Escribe el nuevo nombre de usuario.", "danger")
+        return redirect(url_for("usuarios"))
+    ok, anterior = db.renombrar_usuario(uid, nuevo)
+    if ok:
+        # Si renombras tu propia cuenta, actualiza la sesión para no quedar colgado.
+        if session.get("usuario") == anterior:
+            session["usuario"] = nuevo
+        flash(f"Usuario «{anterior}» renombrado a «{nuevo}».", "success")
+    else:
+        flash(f"No se pudo renombrar (¿«{nuevo}» ya existe?).", "danger")
+    return redirect(url_for("usuarios"))
+
+
 @app.route("/usuarios/<int:uid>/eliminar", methods=["POST"])
+@admin_required
 def borrar_usuario(uid: int):
     # No permitir quedarse sin ningún usuario (te dejaría fuera de la app).
     if db.contar_usuarios() <= 1:

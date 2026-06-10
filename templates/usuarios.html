@@ -12,16 +12,28 @@
       <div class="card-header bg-white fw-semibold">Cuentas registradas</div>
       <ul class="list-group list-group-flush">
         {% for u in usuarios %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-person-circle me-2"></i>{{ u.usuario }}
-            {% if u.usuario == usuario_actual %}<span class="badge bg-primary-subtle text-primary">tú</span>{% endif %}
-          </span>
-          {% if usuarios|length > 1 %}
-          <form method="post" action="{{ url_for('borrar_usuario', uid=u.id) }}"
-                onsubmit="return confirm('¿Quitar acceso a «{{ u.usuario }}»?');">
-            <button class="btn btn-sm btn-light text-danger"><i class="bi bi-trash"></i></button>
-          </form>
-          {% endif %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-person-circle me-2"></i><strong>{{ u.usuario }}</strong>
+              {% if u.es_admin %}<span class="badge bg-warning-subtle text-warning"><i class="bi bi-shield-lock"></i> admin</span>{% endif %}
+              {% if u.usuario == usuario_actual %}<span class="badge bg-primary-subtle text-primary">tú</span>{% endif %}
+            </span>
+            <div class="d-flex gap-1">
+              <!-- Renombrar -->
+              <form class="d-flex gap-1" method="post" action="{{ url_for('renombrar_usuario', uid=u.id) }}">
+                <input type="text" name="nuevo_nombre" class="form-control form-control-sm"
+                       style="max-width: 150px;" placeholder="Nuevo nombre" required>
+                <button class="btn btn-sm btn-outline-secondary" title="Renombrar"><i class="bi bi-pencil"></i></button>
+              </form>
+              <!-- Eliminar -->
+              {% if usuarios|length > 1 and u.usuario != usuario_actual %}
+              <form method="post" action="{{ url_for('borrar_usuario', uid=u.id) }}"
+                    onsubmit="return confirm('¿Quitar acceso a «{{ u.usuario }}»?');">
+                <button class="btn btn-sm btn-light text-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
         </li>
         {% endfor %}
       </ul>

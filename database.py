@@ -101,21 +101,42 @@ def init_db() -> None:
                 "INSERT INTO categorias (nombre, tipo) VALUES (?, ?)", semillas
             )
 
-        # Tabla de usuarios para el login. Se siembra un admin por defecto.
+        # Tabla de usuarios para el login.
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS usuarios (
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
                 usuario  TEXT NOT NULL UNIQUE,
-                clave    TEXT NOT NULL          -- hash, nunca texto plano
+                clave    TEXT NOT NULL,         -- hash, nunca texto plano
+                es_admin INTEGER NOT NULL DEFAULT 0
             )
             """
         )
+        # Migración: añade 'es_admin' a bases de datos ya existentes.
+        cols_u = {c["name"] for c in
+                  conn.execute("PRAGMA table_info(usuarios)").fetchall()}
+        if "es_admin" not in cols_u:
+            conn.execute(
+                "ALTER TABLE usuarios ADD COLUMN es_admin INTEGER NOT NULL DEFAULT 0"
+            )
+
+        # Siembra inicial (instalación nueva): crea al administrador 'Cristopher'.
         if conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 0:
             conn.execute(
-                "INSERT INTO usuarios (usuario, clave) VALUES (?, ?)",
-                ("admin", generate_password_hash("admin123")),
+                "INSERT INTO usuarios (usuario, clave, es_admin) VALUES (?, ?, 1)",
+                ("Cristopher", generate_password_hash("admin123")),
             )
+
+        # Garantiza que SIEMPRE exista al menos un administrador. En bases ya
+        # creadas (que tenían 'admin'), promueve esa cuenta —o la más antigua—
+        # para que no te quedes sin quién gestione usuarios.
+        if conn.execute("SELECT COUNT(*) FROM usuarios WHERE es_admin=1").fetchone()[0] == 0:
+            fila = conn.execute(
+                "SELECT id FROM usuarios WHERE usuario='admin' "
+                "UNION ALL SELECT id FROM usuarios ORDER BY id LIMIT 1"
+            ).fetchone()
+            if fila:
+                conn.execute("UPDATE usuarios SET es_admin=1 WHERE id=?", (fila["id"],))
 
 
 # ---------------------------------------------------------------------------
@@ -144,22 +165,53 @@ def listar_usuarios() -> list[dict]:
     """Lista de usuarios (sin exponer el hash de la contraseña)."""
     with _get_connection() as conn:
         filas = conn.execute(
-            "SELECT id, usuario FROM usuarios ORDER BY usuario"
+            "SELECT id, usuario, es_admin FROM usuarios ORDER BY es_admin DESC, usuario"
         ).fetchall()
     return [dict(f) for f in filas]
 
 
-def crear_usuario(usuario: str, clave: str) -> bool:
+def es_usuario_admin(usuario: str) -> bool:
+    """Devuelve True si el usuario tiene rol de administrador."""
+    with _get_connection() as conn:
+        fila = conn.execute(
+            "SELECT es_admin FROM usuarios WHERE usuario = ?", (usuario.strip(),)
+        ).fetchone()
+    return bool(fila) and bool(fila["es_admin"])
+
+
+def crear_usuario(usuario: str, clave: str, es_admin: bool = False) -> bool:
     """Crea un usuario nuevo. Devuelve False si el nombre ya existe."""
     try:
         with _get_connection() as conn:
             conn.execute(
-                "INSERT INTO usuarios (usuario, clave) VALUES (?, ?)",
-                (usuario.strip(), generate_password_hash(clave)),
+                "INSERT INTO usuarios (usuario, clave, es_admin) VALUES (?, ?, ?)",
+                (usuario.strip(), generate_password_hash(clave), 1 if es_admin else 0),
             )
         return True
     except sqlite3.IntegrityError:
         return False
+
+
+def renombrar_usuario(usuario_id: int, nuevo_nombre: str) -> tuple[bool, str]:
+    """
+    Renombra un usuario. Devuelve (ok, nombre_anterior).
+    Si el nuevo nombre ya existe, devuelve (False, "").
+    """
+    nuevo = nuevo_nombre.strip()
+    with _get_connection() as conn:
+        fila = conn.execute(
+            "SELECT usuario FROM usuarios WHERE id = ?", (usuario_id,)
+        ).fetchone()
+        if not fila:
+            return False, ""
+        anterior = fila["usuario"]
+        try:
+            conn.execute(
+                "UPDATE usuarios SET usuario = ? WHERE id = ?", (nuevo, usuario_id)
+            )
+        except sqlite3.IntegrityError:
+            return False, ""
+    return True, anterior
 
 
 def eliminar_usuario(usuario_id: int) -> None:
