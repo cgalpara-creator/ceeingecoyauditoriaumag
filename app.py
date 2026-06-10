@@ -24,6 +24,7 @@ from flask import (Flask, flash, redirect, render_template, request,
                    send_file, session, url_for)
 from reportlab.lib.pagesizes import A5
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 import database as db
@@ -355,56 +356,82 @@ def exportar():
 # ---------------------------------------------------------------------------
 # Comprobante PDF por transacción
 # ---------------------------------------------------------------------------
+def _ruta_logo() -> str | None:
+    """Devuelve la ruta del logo si existe en static/ (logo.png/.jpg), si no None."""
+    base = Path(__file__).parent / "static"
+    for nombre in ("logo.png", "logo.jpg", "logo.jpeg"):
+        p = base / nombre
+        if p.exists():
+            return str(p)
+    return None
+
+
 def _generar_comprobante_pdf(t: dict) -> BytesIO:
     """Construye un comprobante PDF (tamaño A5) para una transacción."""
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A5)
     ancho, alto = A5
 
-    # Encabezado.
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(20 * mm, alto - 20 * mm, EMPRESA["nombre"])
-    c.setFont("Helvetica", 10)
-    c.drawString(20 * mm, alto - 26 * mm, "Comprobante de tesorería")
+    y = alto - 15 * mm
 
+    # Encabezado: logo si existe; si no, el nombre en texto (respaldo).
+    logo = _ruta_logo()
+    if logo:
+        img = ImageReader(logo)
+        iw, ih = img.getSize()
+        w = 110 * mm
+        h = w * ih / iw
+        if h > 42 * mm:          # limita la altura para no comerse la página
+            h = 42 * mm
+            w = h * iw / ih
+        c.drawImage(logo, (ancho - w) / 2, y - h, width=w, height=h,
+                    mask="auto", preserveAspectRatio=True)
+        y = y - h - 8 * mm
+    else:
+        c.setFont("Helvetica-Bold", 15)
+        c.drawCentredString(ancho / 2, y - 6 * mm, EMPRESA["nombre"])
+        y -= 16 * mm
+
+    # Título del comprobante (centrado).
     titulo = "INGRESO" if t["tipo"] == "Ingreso" else "EGRESO"
-    c.setFont("Helvetica-Bold", 12)
-    c.drawRightString(ancho - 20 * mm, alto - 20 * mm, f"COMPROBANTE DE {titulo}")
+    c.setFont("Helvetica-Bold", 13)
+    c.drawCentredString(ancho / 2, y, f"COMPROBANTE DE {titulo}")
+    y -= 7 * mm
     c.setFont("Helvetica", 10)
-    c.drawRightString(ancho - 20 * mm, alto - 26 * mm,
-                      f"N° {t.get('folio') or t['id']}")
+    c.drawCentredString(ancho / 2, y,
+                        f"N° {t.get('folio') or t['id']}   ·   {t['fecha']}")
+    y -= 6 * mm
 
     # Línea separadora.
-    c.line(20 * mm, alto - 30 * mm, ancho - 20 * mm, alto - 30 * mm)
+    c.line(18 * mm, y, ancho - 18 * mm, y)
+    y -= 10 * mm
 
     # Detalle (etiqueta: valor).
     filas = [
-        ("Fecha", t["fecha"]),
         ("Tipo", t["tipo"]),
         ("Categoría", t["categoria"]),
         ("Descripción", t.get("descripcion") or "—"),
         ("Método de pago", t["metodo_pago"]),
     ]
-    y = alto - 42 * mm
-    c.setFont("Helvetica", 11)
     for etiqueta, valor in filas:
         c.setFont("Helvetica-Bold", 11)
         c.drawString(20 * mm, y, f"{etiqueta}:")
         c.setFont("Helvetica", 11)
-        c.drawString(60 * mm, y, str(valor))
+        c.drawString(62 * mm, y, str(valor))
         y -= 9 * mm
 
     # Monto destacado.
+    y -= 4 * mm
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(20 * mm, y - 4 * mm, "MONTO:")
+    c.drawString(20 * mm, y, "MONTO:")
     c.setFont("Helvetica-Bold", 20)
-    c.drawString(60 * mm, y - 5 * mm, db.format_clp(t["monto"]) + " CLP")
+    c.drawString(62 * mm, y - 1 * mm, db.format_clp(t["monto"]) + " CLP")
 
     # Firma.
     c.line(20 * mm, 22 * mm, 80 * mm, 22 * mm)
     c.setFont("Helvetica", 9)
     c.drawString(20 * mm, 18 * mm, "Firma responsable de tesorería")
-    c.drawRightString(ancho - 20 * mm, 12 * mm,
+    c.drawRightString(ancho - 18 * mm, 12 * mm,
                       f"Emitido: {date.today().isoformat()}")
 
     c.showPage()
