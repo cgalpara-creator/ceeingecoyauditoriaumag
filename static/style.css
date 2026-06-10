@@ -1,0 +1,97 @@
+/* Estilos del software contable del Centro de Alumnos */
+
+:root {
+  --sidebar-bg: #1e293b;   /* slate-800 */
+  --sidebar-accent: #6366f1;
+}
+
+body {
+  background: #f1f5f9;       /* slate-100 */
+  min-height: 100vh;
+}
+
+/* --- Barra superior (solo móvil) --- */
+.mobile-topbar {
+  background: var(--sidebar-bg);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+}
+
+/* --- Barra lateral --- */
+.sidebar {
+  background: var(--sidebar-bg);
+  --bs-offcanvas-width: 260px;     /* ancho del menú deslizable en móvil */
+  --bs-offcanvas-bg: var(--sidebar-bg);
+  --bs-offcanvas-color: #fff;
+}
+
+/* En escritorio (≥ lg) la barra es fija a la izquierda y ocupa toda la altura. */
+@media (min-width: 992px) {
+  .layout { min-height: 100vh; }
+  .sidebar {
+    width: 250px;
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    flex-shrink: 0;
+  }
+  .sidebar .offcanvas-body { min-height: 100vh; }
+}
+
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.sidebar .nav-link {
+  color: #cbd5e1;
+  border-radius: .5rem;
+  padding: .55rem .8rem;
+  transition: background .15s, color .15s;
+}
+
+.sidebar .nav-link:hover {
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+}
+
+.sidebar .nav-link.active {
+  background: var(--sidebar-accent);
+  color: #fff;
+}
+
+/* --- Contenido --- */
+.content {
+  max-width: 1200px;
+}
+
+/* --- Tarjetas KPI --- */
+.card {
+  border: none;
+  border-radius: .8rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+
+.kpi .kpi-label {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: #64748b;
+}
+
+.kpi .kpi-valor {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: .25rem;
+}
+
+.kpi-ingreso { border-left: 4px solid #10b981; }
+.kpi-egreso  { border-left: 4px solid #ef4444; }
+.kpi-saldo   { border-left: 4px solid #6366f1; }
+.kpi-mes     { border-left: 4px solid #f59e0b; }
+
+.table > :not(caption) > * > * {
+  padding: .65rem .85rem;
+}

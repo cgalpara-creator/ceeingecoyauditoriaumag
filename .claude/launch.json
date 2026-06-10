@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ceeapp",
+      "runtimeExecutable": "/Users/apple/centro-alumnos-contabilidad/.venv/bin/python",
+      "runtimeArgs": ["/Users/apple/centro-alumnos-contabilidad/app.py"],
+      "port": 5000
+    }
+  ]
+}

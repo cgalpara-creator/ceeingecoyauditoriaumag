@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block titulo %}Transacciones{% endblock %}
+
+{% macro campos_form(t=None, cat_ingreso=[], cat_egreso=[], metodos=[]) %}
+  {# Campos reutilizables para los formularios de crear y editar #}
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Folio / N° comprobante</label>
+      <input type="text" name="folio" class="form-control"
+             value="{{ t.folio if t and t.folio else '' }}" placeholder="Opcional, ej. 0012">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Fecha</label>
+      <input type="date" name="fecha" class="form-control"
+             value="{{ t.fecha if t else hoy }}" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Tipo</label>
+      <select name="tipo" class="form-select" required>
+        <option value="Ingreso" {{ 'selected' if t and t.tipo == 'Ingreso' }}>Ingreso</option>
+        <option value="Egreso"  {{ 'selected' if t and t.tipo == 'Egreso' }}>Egreso</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Categoría</label>
+      <select name="categoria" class="form-select" required>
+        <optgroup label="Ingresos">
+          {% for c in cat_ingreso %}
+          <option value="{{ c.nombre }}" {{ 'selected' if t and t.categoria == c.nombre }}>{{ c.nombre }}</option>
+          {% endfor %}
+        </optgroup>
+        <optgroup label="Egresos">
+          {% for c in cat_egreso %}
+          <option value="{{ c.nombre }}" {{ 'selected' if t and t.categoria == c.nombre }}>{{ c.nombre }}</option>
+          {% endfor %}
+        </optgroup>
+      </select>
+    </div>
+    <div class="col-md-8">
+      <label class="form-label">Descripción</label>
+      <input type="text" name="descripcion" class="form-control"
+             value="{{ t.descripcion if t else '' }}" placeholder="Detalle (opcional)">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Monto (CLP)</label>
+      <input type="number" name="monto" class="form-control" min="1" step="1"
+             value="{{ t.monto if t else '' }}" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Método de pago</label>
+      <select name="metodo_pago" class="form-select" required>
+        {% for m in metodos %}
+        <option value="{{ m }}" {{ 'selected' if t and t.metodo_pago == m }}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+{% endmacro %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0"><i class="bi bi-journal-text me-2"></i>Transacciones</h3>
+  <div>
+    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCategorias">
+      <i class="bi bi-tags me-1"></i>Categorías
+    </button>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNueva">
+      <i class="bi bi-plus-lg me-1"></i>Nueva transacción
+    </button>
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-md-2">
+        <label class="form-label small mb-1">Tipo</label>
+        <select name="tipo" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          <option value="Ingreso" {{ 'selected' if f_tipo == 'Ingreso' }}>Ingreso</option>
+          <option value="Egreso"  {{ 'selected' if f_tipo == 'Egreso' }}>Egreso</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small mb-1">Categoría</label>
+        <select name="categoria" class="form-select form-select-sm">
+          <option value="">Todas</option>
+          {% for c in categorias %}
+          <option value="{{ c.nombre }}" {{ 'selected' if f_categoria == c.nombre }}>{{ c.nombre }} ({{ c.tipo }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1">Desde</label>
+        <input type="date" name="desde" class="form-control form-control-sm" value="{{ f_desde }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1">Hasta</label>
+        <input type="date" name="hasta" class="form-control form-control-sm" value="{{ f_hasta }}">
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-sm btn-dark flex-grow-1" type="submit">Filtrar</button>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('transacciones') }}">Limpiar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tabla -->
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>#</th><th>Folio</th><th>Fecha</th><th>Tipo</th><th>Categoría</th>
+          <th>Descripción</th><th>Método</th><th class="text-end">Monto</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in items %}
+        <tr>
+          <td class="text-muted">{{ t.id }}</td>
+          <td>{{ t.folio or '—' }}</td>
+          <td>{{ t.fecha }}</td>
+          <td>
+            <span class="badge {{ 'bg-success-subtle text-success' if t.tipo == 'Ingreso' else 'bg-danger-subtle text-danger' }}">{{ t.tipo }}</span>
+          </td>
+          <td>{{ t.categoria }}</td>
+          <td class="text-muted">{{ t.descripcion or '—' }}</td>
+          <td>{{ t.metodo_pago }}</td>
+          <td class="text-end fw-semibold {{ 'text-success' if t.tipo == 'Ingreso' else 'text-danger' }}">
+            {{ '+' if t.tipo == 'Ingreso' else '−' }}{{ clp(t.monto) }}
+          </td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-light" href="{{ url_for('comprobante', tid=t.id) }}" target="_blank" title="Comprobante PDF">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+            <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#modalEditar{{ t.id }}" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <form class="d-inline" method="post"
+                  action="{{ url_for('eliminar_transaccion', tid=t.id) }}"
+                  onsubmit="return confirm('¿Eliminar la transacción #{{ t.id }}?');">
+              <button class="btn btn-sm btn-light text-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">No hay transacciones para los filtros seleccionados.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if items %}
+      <tfoot class="table-light">
+        <tr>
+          <td colspan="7" class="text-end fw-semibold">Resultado del filtro:</td>
+          <td class="text-end fw-bold {{ 'text-success' if total_filtrado >= 0 else 'text-danger' }}">{{ clp(total_filtrado) }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
+<!-- Modal: Nueva transacción -->
+<div class="modal fade" id="modalNueva" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="post" action="{{ url_for('nueva_transaccion') }}">
+      <div class="modal-header">
+        <h5 class="modal-title">Nueva transacción</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {{ campos_form(none, cat_ingreso, cat_egreso, metodos) }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modales: Editar (uno por transacción) -->
+{% for t in items %}
+<div class="modal fade" id="modalEditar{{ t.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="post" action="{{ url_for('editar_transaccion', tid=t.id) }}">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar transacción #{{ t.id }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {{ campos_form(t, cat_ingreso, cat_egreso, metodos) }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Modal: Gestionar categorías -->
+<div class="modal fade" id="modalCategorias" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Gestionar categorías</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="row g-2 align-items-end mb-3" method="post" action="{{ url_for('nueva_categoria') }}">
+          <div class="col-6">
+            <label class="form-label small mb-1">Nueva categoría</label>
+            <input type="text" name="nombre" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-3">
+            <label class="form-label small mb-1">Tipo</label>
+            <select name="tipo" class="form-select form-select-sm">
+              <option value="Ingreso">Ingreso</option>
+              <option value="Egreso">Egreso</option>
+            </select>
+          </div>
+          <div class="col-3"><button class="btn btn-sm btn-primary w-100">Añadir</button></div>
+        </form>
+        <ul class="list-group">
+          {% for c in categorias %}
+          <li class="list-group-item d-flex justify-content-between align-items-center py-1">
+            <span>{{ c.nombre }}
+              <span class="badge {{ 'bg-success-subtle text-success' if c.tipo == 'Ingreso' else 'bg-danger-subtle text-danger' }}">{{ c.tipo }}</span>
+            </span>
+            <form method="post" action="{{ url_for('eliminar_categoria', cid=c.id) }}"
+                  onsubmit="return confirm('¿Eliminar la categoría «{{ c.nombre }}»?');">
+              <button class="btn btn-sm btn-light text-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

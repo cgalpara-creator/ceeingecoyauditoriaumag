@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceso · {{ empresa.nombre }}</title>
+  <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap-icons.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body class="d-flex align-items-center justify-content-center" style="min-height:100vh;">
+  <div class="card shadow-sm" style="width: 360px;">
+    <div class="card-body p-4">
+      <div class="text-center mb-3">
+        <i class="bi bi-bank2 fs-1 text-primary"></i>
+        <h5 class="mt-2 mb-0">{{ empresa.nombre }}</h5>
+        <small class="text-muted">Contabilidad · {{ empresa.moneda }}</small>
+      </div>
+
+      {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% for categoria, texto in mensajes %}
+          <div class="alert alert-{{ categoria }} py-2 small">{{ texto }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Usuario</label>
+          <input type="text" name="usuario" class="form-control" autofocus required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contraseña</label>
+          <input type="password" name="clave" class="form-control" required>
+        </div>
+        <button class="btn btn-primary w-100" type="submit">
+          <i class="bi bi-box-arrow-in-right me-1"></i>Entrar
+        </button>
+      </form>
+      <p class="text-muted small text-center mt-3 mb-0">
+        Acceso por defecto: <code>admin</code> / <code>admin123</code><br>
+        (cámbialo tras el primer ingreso)
+      </p>
+    </div>
+  </div>
+</body>
+</html>

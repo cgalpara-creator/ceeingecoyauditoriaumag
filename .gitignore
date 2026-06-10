@@ -1,0 +1,14 @@
+# Entorno virtual
+.venv/
+venv/
+
+# Caché de Python
+__pycache__/
+*.pyc
+
+# Base de datos local y clave secreta (NUNCA subir a un repositorio)
+contabilidad.db
+.secret_key
+
+# Respaldos automáticos
+backups/

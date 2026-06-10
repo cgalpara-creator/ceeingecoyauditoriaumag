@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block titulo %}Panel{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Panel general</h3>
+  <span class="text-muted">{{ hoy }}</span>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="card kpi kpi-ingreso h-100">
+      <div class="card-body">
+        <div class="kpi-label">Ingresos (total)</div>
+        <div class="kpi-valor">{{ clp(balance.ingresos) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card kpi kpi-egreso h-100">
+      <div class="card-body">
+        <div class="kpi-label">Egresos (total)</div>
+        <div class="kpi-valor">{{ clp(balance.egresos) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card kpi kpi-saldo h-100">
+      <div class="card-body">
+        <div class="kpi-label">Saldo en caja</div>
+        <div class="kpi-valor">{{ clp(balance.saldo) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card kpi kpi-mes h-100">
+      <div class="card-body">
+        <div class="kpi-label">Saldo del mes</div>
+        <div class="kpi-valor">{{ clp(balance_mes.saldo) }}</div>
+        <small class="text-muted">{{ mes_actual }}</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">Evolución mensual</div>
+      <div class="card-body"><canvas id="graficoMensual" height="120"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">Egresos por categoría</div>
+      <div class="card-body"><canvas id="graficoCategorias" height="120"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Movimientos recientes -->
+<div class="card">
+  <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+    <span>Movimientos recientes</span>
+    <a href="{{ url_for('transacciones') }}" class="small">Ver todos</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th class="text-end">Monto</th></tr>
+      </thead>
+      <tbody>
+        {% for t in recientes %}
+        <tr>
+          <td>{{ t.fecha }}</td>
+          <td>
+            <span class="badge {{ 'bg-success-subtle text-success' if t.tipo == 'Ingreso' else 'bg-danger-subtle text-danger' }}">
+              {{ t.tipo }}
+            </span>
+          </td>
+          <td>{{ t.categoria }}</td>
+          <td class="text-muted">{{ t.descripcion or '—' }}</td>
+          <td class="text-end fw-semibold {{ 'text-success' if t.tipo == 'Ingreso' else 'text-danger' }}">
+            {{ '+' if t.tipo == 'Ingreso' else '−' }}{{ clp(t.monto) }}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aún no hay movimientos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const labels = {{ chart_labels | tojson }};
+  // Gráfico de barras: ingresos vs egresos por mes.
+  new Chart(document.getElementById('graficoMensual'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Ingresos', data: {{ chart_ingresos | tojson }}, backgroundColor: '#10b981' },
+        { label: 'Egresos',  data: {{ chart_egresos | tojson }}, backgroundColor: '#ef4444' }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // Gráfico de dona: egresos por categoría.
+  new Chart(document.getElementById('graficoCategorias'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ cat_labels | tojson }},
+      datasets: [{ data: {{ cat_valores | tojson }},
+        backgroundColor: ['#6366f1','#ef4444','#f59e0b','#10b981','#3b82f6','#ec4899','#14b8a6','#a855f7'] }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+</script>
+{% endblock %}

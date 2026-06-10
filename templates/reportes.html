@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titulo %}Reportes{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Estado de resultados</h3>
+  <a href="{{ url_for('exportar') }}" class="btn btn-outline-success">
+    <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+  </a>
+</div>
+
+<!-- Filtro por mes -->
+<form class="row g-2 align-items-end mb-4" method="get">
+  <div class="col-auto">
+    <label class="form-label small mb-1">Período (mes)</label>
+    <input type="month" name="mes" class="form-control form-control-sm" value="{{ f_mes }}">
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-sm btn-dark">Aplicar</button>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('reportes') }}">Todo el histórico</a>
+  </div>
+</form>
+
+<div class="row g-3">
+  <!-- Ingresos -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header bg-success text-white fw-semibold">Ingresos</div>
+      <table class="table mb-0">
+        <tbody>
+          {% for c in ingresos %}
+          <tr><td>{{ c.categoria }}</td><td class="text-end">{{ clp(c.total) }}</td></tr>
+          {% else %}
+          <tr><td colspan="2" class="text-muted text-center py-3">Sin ingresos en el período.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-light">
+          <tr class="fw-bold"><td>Total ingresos</td><td class="text-end text-success">{{ clp(balance.ingresos) }}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Egresos -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header bg-danger text-white fw-semibold">Egresos</div>
+      <table class="table mb-0">
+        <tbody>
+          {% for c in egresos %}
+          <tr><td>{{ c.categoria }}</td><td class="text-end">{{ clp(c.total) }}</td></tr>
+          {% else %}
+          <tr><td colspan="2" class="text-muted text-center py-3">Sin egresos en el período.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-light">
+          <tr class="fw-bold"><td>Total egresos</td><td class="text-end text-danger">{{ clp(balance.egresos) }}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Resultado -->
+<div class="card mt-3">
+  <div class="card-body d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Resultado del período</h5>
+    <h4 class="mb-0 {{ 'text-success' if balance.saldo >= 0 else 'text-danger' }}">
+      {{ clp(balance.saldo) }}
+      <small class="text-muted fs-6">({{ 'Superávit' if balance.saldo >= 0 else 'Déficit' }})</small>
+    </h4>
+  </div>
+</div>
+{% endblock %}

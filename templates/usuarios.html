@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0"><i class="bi bi-people me-2"></i>Usuarios con acceso</h3>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header bg-white fw-semibold">Cuentas registradas</div>
+      <ul class="list-group list-group-flush">
+        {% for u in usuarios %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-person-circle me-2"></i>{{ u.usuario }}
+            {% if u.usuario == usuario_actual %}<span class="badge bg-primary-subtle text-primary">tú</span>{% endif %}
+          </span>
+          {% if usuarios|length > 1 %}
+          <form method="post" action="{{ url_for('borrar_usuario', uid=u.id) }}"
+                onsubmit="return confirm('¿Quitar acceso a «{{ u.usuario }}»?');">
+            <button class="btn btn-sm btn-light text-danger"><i class="bi bi-trash"></i></button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header bg-white fw-semibold">Agregar colega</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('nuevo_usuario') }}">
+          <div class="mb-3">
+            <label class="form-label">Usuario</label>
+            <input type="text" name="usuario" class="form-control" placeholder="ej. tesorero" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Contraseña</label>
+            <input type="password" name="clave" class="form-control" minlength="4" required>
+          </div>
+          <button class="btn btn-primary w-100"><i class="bi bi-person-plus me-1"></i>Crear acceso</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
