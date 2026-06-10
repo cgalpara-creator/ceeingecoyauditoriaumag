@@ -19,8 +19,11 @@ body {
 }
 
 /* --- Barra lateral --- */
+/* Nota: usamos '!important' porque en pantallas grandes Bootstrap aplica
+   'background-color: transparent !important' a los .offcanvas-{bp}, lo que
+   borraría nuestro fondo oscuro y dejaría el texto blanco invisible. */
 .sidebar {
-  background: var(--sidebar-bg);
+  background-color: var(--sidebar-bg) !important;
   --bs-offcanvas-width: 260px;     /* ancho del menú deslizable en móvil */
   --bs-offcanvas-bg: var(--sidebar-bg);
   --bs-offcanvas-color: #fff;
@@ -35,7 +38,10 @@ body {
     position: sticky;
     top: 0;
     flex-shrink: 0;
+    background-color: var(--sidebar-bg) !important;
   }
+  /* El offcanvas-body también lo fuerza Bootstrap a transparente: lo dejamos
+     transparente para que se vea el fondo oscuro de .sidebar (correcto). */
   .sidebar .offcanvas-body { min-height: 100vh; }
 }
 
