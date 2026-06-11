@@ -32,7 +32,7 @@ import database as db
 # Datos de la organización (monoempresa).
 # Para cambiar el nombre visible en toda la app, edita "nombre" aquí.
 EMPRESA = {
-    "nombre": "CEE Inge Eco y Auditoría UMAG",
+    "nombre": "Centro de Alumnos Ingeniería Comercial y Auditoría",
     "moneda": "CLP",
 }
 
