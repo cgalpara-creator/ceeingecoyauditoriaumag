@@ -260,10 +260,36 @@ def eliminar_categoria(categoria_id: int) -> None:
 # ---------------------------------------------------------------------------
 # Transacciones (CRUD)
 # ---------------------------------------------------------------------------
+def siguiente_folio(tipo: str) -> str:
+    """
+    Calcula el siguiente folio correlativo según el tipo:
+      - Ingreso -> 'ING-001', 'ING-002', ...
+      - Egreso  -> 'EGR-001', 'EGR-002', ...
+    Toma el número más alto existente con ese prefijo y le suma 1.
+    """
+    prefijo = "ING" if tipo == "Ingreso" else "EGR"
+    with _get_connection() as conn:
+        filas = conn.execute(
+            "SELECT folio FROM transacciones WHERE folio LIKE ?",
+            (f"{prefijo}-%",),
+        ).fetchall()
+    maximo = 0
+    for f in filas:
+        try:
+            maximo = max(maximo, int(f["folio"].split("-")[1]))
+        except (IndexError, ValueError):
+            continue  # ignora folios con formato distinto
+    return f"{prefijo}-{maximo + 1:03d}"
+
+
 def agregar_transaccion(fecha: str, tipo: str, categoria: str,
                         descripcion: str, monto: float, metodo_pago: str,
                         folio: str = "") -> None:
-    """Inserta una transacción. El monto se guarda redondeado y positivo."""
+    """
+    Inserta una transacción. El monto se guarda redondeado y positivo.
+    Si no se entrega 'folio', se genera automáticamente (ING-/EGR- correlativo).
+    """
+    folio = (folio or "").strip() or siguiente_folio(tipo)
     with _get_connection() as conn:
         conn.execute(
             """
@@ -271,7 +297,7 @@ def agregar_transaccion(fecha: str, tipo: str, categoria: str,
                 (folio, fecha, tipo, categoria, descripcion, monto, metodo_pago)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (folio.strip() or None, fecha, tipo, categoria, descripcion,
+            (folio, fecha, tipo, categoria, descripcion,
              abs(int(round(float(monto)))), metodo_pago),
         )
 

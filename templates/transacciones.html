@@ -6,8 +6,15 @@
   <div class="row g-3">
     <div class="col-md-4">
       <label class="form-label">Folio / N° comprobante</label>
-      <input type="text" name="folio" class="form-control"
-             value="{{ t.folio if t and t.folio else '' }}" placeholder="Opcional, ej. 0012">
+      {% if t %}
+        {# Editando: se muestra el folio existente, pero no se modifica. #}
+        <input type="text" name="folio" class="form-control bg-light"
+               value="{{ t.folio or '' }}" readonly>
+      {% else %}
+        {# Nuevo: el folio se asigna solo según el tipo (ING-/EGR-). #}
+        <input type="text" class="form-control bg-light text-muted"
+               value="Automático (ING-/EGR-)" disabled>
+      {% endif %}
     </div>
     <div class="col-md-4">
       <label class="form-label">Fecha</label>
