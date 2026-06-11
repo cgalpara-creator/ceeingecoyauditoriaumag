@@ -370,6 +370,16 @@ def resumen_por_categoria(tipo: str, mes: str | None = None) -> list[dict]:
     return [dict(f) for f in filas]
 
 
+def anios_disponibles() -> list[str]:
+    """Lista de años (YYYY) que tienen transacciones, del más reciente al más antiguo."""
+    with _get_connection() as conn:
+        filas = conn.execute(
+            "SELECT DISTINCT substr(fecha, 1, 4) AS anio "
+            "FROM transacciones ORDER BY anio DESC"
+        ).fetchall()
+    return [f["anio"] for f in filas]
+
+
 def resumen_mensual() -> list[dict]:
     """
     Devuelve, por mes ('YYYY-MM'), los totales de ingresos y egresos.

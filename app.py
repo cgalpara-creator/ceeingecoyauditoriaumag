@@ -36,6 +36,14 @@ EMPRESA = {
     "moneda": "CLP",
 }
 
+# Meses en español (valor de 2 dígitos → nombre) para los filtros desplegables.
+MESES = [
+    ("01", "Enero"), ("02", "Febrero"), ("03", "Marzo"), ("04", "Abril"),
+    ("05", "Mayo"), ("06", "Junio"), ("07", "Julio"), ("08", "Agosto"),
+    ("09", "Septiembre"), ("10", "Octubre"), ("11", "Noviembre"),
+    ("12", "Diciembre"),
+]
+
 def _obtener_secret_key() -> str:
     """
     Clave para firmar las sesiones (login). Orden de prioridad:
@@ -310,14 +318,32 @@ def eliminar_categoria(cid: int):
 # ---------------------------------------------------------------------------
 @app.route("/reportes")
 def reportes():
-    # Permite ver todo o filtrar por mes (?mes=YYYY-MM).
-    mes = request.args.get("mes") or None
-    ingresos = db.resumen_por_categoria("Ingreso", mes=mes)
-    egresos = db.resumen_por_categoria("Egreso", mes=mes)
-    balance = db.calcular_balance(mes=mes)
+    # Filtros por listas desplegables: mes ("01".."12") y año ("YYYY").
+    mes = request.args.get("mes") or ""
+    anio = request.args.get("anio") or ""
+
+    # Construye un prefijo de fecha para el filtro LIKE 'prefijo%':
+    #   año + mes  -> "2026-06"   (mes exacto)
+    #   solo año   -> "2026-"     (todo el año)
+    #   solo mes   -> "____-06"   ('_' es comodín en LIKE: ese mes en cualquier año)
+    #   nada       -> None        (todo el histórico)
+    if anio and mes:
+        prefijo = f"{anio}-{mes}"
+    elif anio:
+        prefijo = f"{anio}-"
+    elif mes:
+        prefijo = f"____-{mes}"
+    else:
+        prefijo = None
+
+    ingresos = db.resumen_por_categoria("Ingreso", mes=prefijo)
+    egresos = db.resumen_por_categoria("Egreso", mes=prefijo)
+    balance = db.calcular_balance(mes=prefijo)
     return render_template(
         "reportes.html",
-        ingresos=ingresos, egresos=egresos, balance=balance, f_mes=mes or "",
+        ingresos=ingresos, egresos=egresos, balance=balance,
+        meses=MESES, anios=db.anios_disponibles(),
+        f_mes=mes, f_anio=anio,
     )
 
 

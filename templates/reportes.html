@@ -9,15 +9,29 @@
   </a>
 </div>
 
-<!-- Filtro por mes -->
+<!-- Filtro por mes y año (listas desplegables) -->
 <form class="row g-2 align-items-end mb-4" method="get">
   <div class="col-auto">
-    <label class="form-label small mb-1">Período (mes)</label>
-    <input type="month" name="mes" class="form-control form-control-sm" value="{{ f_mes }}">
+    <label class="form-label small mb-1">Mes</label>
+    <select name="mes" class="form-select form-select-sm">
+      <option value="">Todos los meses</option>
+      {% for valor, nombre in meses %}
+      <option value="{{ valor }}" {{ 'selected' if f_mes == valor }}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1">Año</label>
+    <select name="anio" class="form-select form-select-sm">
+      <option value="">Todos</option>
+      {% for a in anios %}
+      <option value="{{ a }}" {{ 'selected' if f_anio == a }}>{{ a }}</option>
+      {% endfor %}
+    </select>
   </div>
   <div class="col-auto">
     <button class="btn btn-sm btn-dark">Aplicar</button>
-    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('reportes') }}">Todo el histórico</a>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('reportes') }}">Limpiar</a>
   </div>
 </form>
 
